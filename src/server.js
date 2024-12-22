@@ -1,11 +1,10 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
-const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const { connectDB } = require('./config');
 const authRoutes = require('./routes/auth');
-const protectedRoutes = require('./routes/protected');
+const routeRoutes = require('./routes/routes');
 
 dotenv.config();
 const app = express();
@@ -16,7 +15,7 @@ app.use(bodyParser.json());
 
 // Routes
 app.use('/auth', authRoutes);
-app.use('/protected', protectedRoutes);
+app.use('/routes', routeRoutes);
 
 
 connectDB();
