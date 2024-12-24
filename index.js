@@ -3,7 +3,7 @@ const bodyParser = require("body-parser");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const { connectDB } = require("./config");
-const { initializeWebSocket } = require("./websocket");
+const { connectToWebSocket } = require("./utils/websocket");
 const authRoutes = require("./routes/auth");
 const routeRoutes = require("./routes/routes");
 const busRoutes = require("./routes/buses");
@@ -16,6 +16,10 @@ const app = express();
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
+
+app.get("/", (req, res) => {
+  res.send("Welcome to the Bus Reservation System API!");
+});
 
 // Routes
 app.use("/auth", authRoutes);
@@ -31,4 +35,4 @@ const server = app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
 
-initializeWebSocket(server);
+connectToWebSocket();
