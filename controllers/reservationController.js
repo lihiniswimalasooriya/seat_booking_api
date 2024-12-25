@@ -1,9 +1,12 @@
 const Reservation = require("../models/Reservation");
 const Bus = require("../models/Bus");
+const Trip = require("../models/Trip");
+const DefaultTrip = require("../models/DefaultTrip");
+const Route = require("../models/Route");
 const { broadcast } = require("../utils/websocket");
 
 const createReservation = async (req, res) => {
-  const { busId, tripId, seatNumber } = req.body;
+  const { busId, defaultTripId, date, seatNumber } = req.body;
   const commuter = req.user.id;
 
   try {
@@ -12,43 +15,84 @@ const createReservation = async (req, res) => {
       return res.status(404).json({ message: "Bus not found" });
     }
 
-    const trip = bus.trips.find((t) => t._id.toString() === tripId);
-    if (!trip) {
-      return res.status(404).json({ message: "Trip not found" });
+    const defaultTrip = await DefaultTrip.findById(defaultTripId);
+    if (!defaultTrip) {
+      return res.status(404).json({ message: "Default trip not found" });
     }
 
-    if (seatNumber < 1 || seatNumber > bus.capacity) {
-      return res
-        .status(400)
-        .json({ message: `Seat number must be between 1 and ${bus.capacity}` });
+    const route = await Route.findById(defaultTrip.route);
+    if (!route) {
+      return res.status(404).json({ message: "Route not found" });
     }
 
-    if (trip.bookedSeats.includes(seatNumber)) {
-      return res.status(400).json({ message: "Seat already booked" });
+    let trip = await Trip.findOne({ date, busId, defaultTripId });
+    if (trip) {
+      if (seatNumber < 1 || seatNumber > bus.capacity) {
+        return res
+          .status(400)
+          .json({
+            message: `Seat number must be between 1 and ${bus.capacity}`,
+          });
+      }
+
+      if (trip.bookedSeats.includes(seatNumber)) {
+        return res.status(400).json({ message: "Seat already booked" });
+      }
+
+      trip.bookedSeats.push(seatNumber);
+      await trip.save();
+
+      const newReservation = new Reservation({
+        commuter,
+        bus: busId,
+        trip: trip._id,
+        seatNumber,
+        paymentStatus: "pending",
+      });
+      await newReservation.save();
+
+      broadcast({
+        type: "seatReservationUpdate",
+        busId,
+        tripId: trip._id,
+        bookedSeats: trip.bookedSeats,
+      });
+
+      return res.status(201).json({
+        message: "Reservation created successfully",
+        reservation: newReservation,
+      });
+    } else {
+      trip = new Trip({
+        date,
+        busId,
+        defaultTripId,
+        routeId: route._id,
+        bookedSeats: [seatNumber],
+      });
+      await trip.save();
+
+      const newReservation = new Reservation({
+        commuter,
+        bus: busId,
+        trip: trip._id,
+        seatNumber,
+        paymentStatus: "pending",
+      });
+      await newReservation.save();
+
+      broadcast({
+        type: "seatReservationUpdate",
+        busId,
+        tripId: trip._id,
+        bookedSeats: trip.bookedSeats,
+      });
+
+      return res.status(201).json({
+        message: "Reservation created successfully",
+        reservation: newReservation,
+      });
     }
-
-    trip.bookedSeats.push(seatNumber);
-    await bus.save();
-
-    const newReservation = new Reservation({
-      commuter,
-      bus: busId,
-      trip: trip._id,
-      seatNumber,
-    });
-    await newReservation.save();
-
-    broadcast({
-      type: "seatReservationUpdate",
-      busId,
-      tripId,
-      bookedSeats: trip.bookedSeats,
-    });
-
-    res.status(201).json({
-      message: "Reservation created successfully",
-      reservation: newReservation,
-    });
   } catch (error) {
     console.error(error);
     res.status(500).json({
@@ -61,11 +105,8 @@ const createReservation = async (req, res) => {
 const getReservations = async (req, res) => {
   try {
     const reservations = await Reservation.find()
-      .populate("commuter bus")
-      .populate({
-        path: "bus",
-        populate: { path: "trips" },
-      });
+      .populate("commuter bus trip");
+
     res.status(200).json({ reservations });
   } catch (error) {
     console.error(error);
@@ -76,16 +117,13 @@ const getReservations = async (req, res) => {
   }
 };
 
+
 const getReservationById = async (req, res) => {
   const { id } = req.params;
 
   try {
     const reservation = await Reservation.findById(id)
-      .populate("commuter bus")
-      .populate({
-        path: "bus",
-        populate: { path: "trips" },
-      });
+      .populate("commuter bus trip");
     if (!reservation) {
       return res.status(404).json({ message: "Reservation not found" });
     }
@@ -113,7 +151,7 @@ const updateReservation = async (req, res) => {
     const bus = await Bus.findById(reservation.bus);
     if (!bus) return res.status(404).json({ message: "Bus not found" });
 
-    const trip = bus.trips.id(reservation.trip);
+    const trip = await Trip.findById(reservation.trip);
     if (!trip) return res.status(404).json({ message: "Trip not found" });
 
     if (seatNumber && seatNumber !== reservation.seatNumber) {
@@ -125,7 +163,7 @@ const updateReservation = async (req, res) => {
         (seat) => seat !== reservation.seatNumber
       );
       trip.bookedSeats.push(seatNumber);
-      await bus.save();
+      await trip.save();
     }
 
     const updatedReservation = await Reservation.findByIdAndUpdate(
@@ -179,7 +217,7 @@ const deleteReservation = async (req, res) => {
       return res.status(404).json({ message: "Bus not found" });
     }
 
-    const trip = bus.trips.id(reservation.trip);
+    const trip = await Trip.findById(reservation.trip);
     if (!trip) {
       return res.status(404).json({ message: "Trip not found" });
     }
@@ -187,7 +225,7 @@ const deleteReservation = async (req, res) => {
     trip.bookedSeats = trip.bookedSeats.filter(
       (seat) => seat !== reservation.seatNumber
     );
-    await bus.save();
+    await trip.save();
 
     await Reservation.findByIdAndDelete(id);
 
@@ -206,10 +244,6 @@ const deleteReservation = async (req, res) => {
       error: error.message,
     });
   }
-};
-
-module.exports = {
-  deleteReservation,
 };
 
 module.exports = {
