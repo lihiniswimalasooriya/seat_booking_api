@@ -10,6 +10,10 @@ const createReservation = async (req, res) => {
   const commuter = req.user.id;
 
   try {
+    if (!busId || !defaultTripId || !date || !seatNumber) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
     const bus = await Bus.findById(busId);
     if (!bus) {
       return res.status(404).json({ message: "Bus not found" });
@@ -25,43 +29,20 @@ const createReservation = async (req, res) => {
       return res.status(404).json({ message: "Route not found" });
     }
 
+    if (seatNumber < 1 || seatNumber > bus.capacity) {
+      return res
+        .status(400)
+        .json({ message: `Seat number must be between 1 and ${bus.capacity}` });
+    }
+
     let trip = await Trip.findOne({ date, busId, defaultTripId });
     if (trip) {
-      if (seatNumber < 1 || seatNumber > bus.capacity) {
-        return res
-          .status(400)
-          .json({
-            message: `Seat number must be between 1 and ${bus.capacity}`,
-          });
-      }
-
       if (trip.bookedSeats.includes(seatNumber)) {
         return res.status(400).json({ message: "Seat already booked" });
       }
 
       trip.bookedSeats.push(seatNumber);
       await trip.save();
-
-      const newReservation = new Reservation({
-        commuter,
-        bus: busId,
-        trip: trip._id,
-        seatNumber,
-        paymentStatus: "pending",
-      });
-      await newReservation.save();
-
-      broadcast({
-        type: "seatReservationUpdate",
-        busId,
-        tripId: trip._id,
-        bookedSeats: trip.bookedSeats,
-      });
-
-      return res.status(201).json({
-        message: "Reservation created successfully",
-        reservation: newReservation,
-      });
     } else {
       trip = new Trip({
         date,
@@ -71,30 +52,30 @@ const createReservation = async (req, res) => {
         bookedSeats: [seatNumber],
       });
       await trip.save();
-
-      const newReservation = new Reservation({
-        commuter,
-        bus: busId,
-        trip: trip._id,
-        seatNumber,
-        paymentStatus: "pending",
-      });
-      await newReservation.save();
-
-      broadcast({
-        type: "seatReservationUpdate",
-        busId,
-        tripId: trip._id,
-        bookedSeats: trip.bookedSeats,
-      });
-
-      return res.status(201).json({
-        message: "Reservation created successfully",
-        reservation: newReservation,
-      });
     }
+
+    const newReservation = new Reservation({
+      commuter,
+      bus: busId,
+      trip: trip._id,
+      seatNumber,
+      paymentStatus: "pending",
+    });
+    await newReservation.save();
+
+    broadcast({
+      type: "seatReservationUpdate",
+      busId,
+      tripId: trip._id,
+      bookedSeats: trip.bookedSeats,
+    });
+
+    res.status(201).json({
+      message: "Reservation created successfully",
+      reservation: newReservation,
+    });
   } catch (error) {
-    console.error(error);
+    console.error("Error creating reservation:", error);
     res.status(500).json({
       message: "Failed to create reservation",
       error: error.message,
@@ -107,9 +88,13 @@ const getReservations = async (req, res) => {
     const reservations = await Reservation.find()
       .populate("commuter bus trip");
 
+    if (!reservations.length) {
+      return res.status(404).json({ message: "No reservations found" });
+    }
+
     res.status(200).json({ reservations });
   } catch (error) {
-    console.error(error);
+    console.error("Error retrieving reservations:", error);
     res.status(500).json({
       message: "Failed to retrieve reservations",
       error: error.message,
@@ -117,20 +102,24 @@ const getReservations = async (req, res) => {
   }
 };
 
-
 const getReservationById = async (req, res) => {
   const { id } = req.params;
 
   try {
+    if (!id) {
+      return res.status(400).json({ message: "Reservation ID is required" });
+    }
+
     const reservation = await Reservation.findById(id)
       .populate("commuter bus trip");
+
     if (!reservation) {
       return res.status(404).json({ message: "Reservation not found" });
     }
 
     res.status(200).json({ reservation });
   } catch (error) {
-    console.error(error);
+    console.error("Error retrieving reservation:", error);
     res.status(500).json({
       message: "Failed to retrieve reservation",
       error: error.message,
@@ -143,6 +132,10 @@ const updateReservation = async (req, res) => {
   const { seatNumber, paymentStatus } = req.body;
 
   try {
+    if (!id) {
+      return res.status(400).json({ message: "Reservation ID is required" });
+    }
+
     const reservation = await Reservation.findById(id);
     if (!reservation) {
       return res.status(404).json({ message: "Reservation not found" });
@@ -184,7 +177,7 @@ const updateReservation = async (req, res) => {
       reservation: updatedReservation,
     });
   } catch (error) {
-    console.error(error);
+    console.error("Error updating reservation:", error);
     res.status(500).json({
       message: "Failed to update reservation",
       error: error.message,
@@ -198,6 +191,10 @@ const deleteReservation = async (req, res) => {
   const userRole = req.user.role;
 
   try {
+    if (!id) {
+      return res.status(400).json({ message: "Reservation ID is required" });
+    }
+
     const reservation = await Reservation.findById(id);
     if (!reservation) {
       return res.status(404).json({ message: "Reservation not found" });
@@ -238,7 +235,7 @@ const deleteReservation = async (req, res) => {
 
     res.status(200).json({ message: "Reservation deleted successfully" });
   } catch (error) {
-    console.error(error);
+    console.error("Error deleting reservation:", error);
     res.status(500).json({
       message: "Failed to delete reservation",
       error: error.message,
@@ -246,10 +243,49 @@ const deleteReservation = async (req, res) => {
   }
 };
 
+const getOrCreateTripByDetails = async (req, res) => {
+  const { busId, defaultTripId, date, routeId } = req.query;
+
+  try {
+    if (!busId || !defaultTripId || !date | !routeId) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    let trip = await Trip.findOne({ busId, defaultTripId, date });
+
+    if (!trip) {
+      const defaultTrip = await DefaultTrip.findById(defaultTripId);
+      if (!defaultTrip) {
+        return res.status(404).json({ message: "Default trip not found" });
+      }
+
+      trip = new Trip({
+        busId,
+        defaultTripId,
+        date,
+        routeId,
+        bookedSeats: [],
+      });
+
+      await trip.save();
+    }
+
+    res.status(200).json({ trip });
+  } catch (error) {
+    console.error("Error retrieving or creating trip:", error);
+    res.status(500).json({
+      message: "Failed to retrieve or create trip",
+      error: error.message,
+    });
+  }
+};
+
+
 module.exports = {
   createReservation,
   getReservations,
   getReservationById,
   updateReservation,
   deleteReservation,
+  getOrCreateTripByDetails
 };
