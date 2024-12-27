@@ -29,7 +29,9 @@ const addBus = async (req, res) => {
     res.status(201).json({ message: "Bus added successfully", bus: newBus });
   } catch (error) {
     console.error("Error adding bus:", error);
-    res.status(500).json({ message: "Failed to add bus", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Failed to add bus", error: error.message });
   }
 };
 
@@ -52,10 +54,14 @@ const updateBus = async (req, res) => {
       return res.status(404).json({ message: "Bus not found" });
     }
 
-    res.status(200).json({ message: "Bus updated successfully", bus: updatedBus });
+    res
+      .status(200)
+      .json({ message: "Bus updated successfully", bus: updatedBus });
   } catch (error) {
     console.error("Error updating bus:", error);
-    res.status(500).json({ message: "Failed to update bus", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Failed to update bus", error: error.message });
   }
 };
 
@@ -76,7 +82,9 @@ const deleteBus = async (req, res) => {
     res.status(200).json({ message: "Bus deleted successfully" });
   } catch (error) {
     console.error("Error deleting bus:", error);
-    res.status(500).json({ message: "Failed to delete bus", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Failed to delete bus", error: error.message });
   }
 };
 
@@ -91,7 +99,9 @@ const getBuses = async (req, res) => {
     res.status(200).json({ buses });
   } catch (error) {
     console.error("Error retrieving buses:", error);
-    res.status(500).json({ message: "Failed to retrieve buses", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Failed to retrieve buses", error: error.message });
   }
 };
 
@@ -112,7 +122,9 @@ const getBusById = async (req, res) => {
     res.status(200).json({ bus });
   } catch (error) {
     console.error("Error retrieving bus:", error);
-    res.status(500).json({ message: "Failed to retrieve bus", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Failed to retrieve bus", error: error.message });
   }
 };
 
@@ -150,7 +162,9 @@ const addDefaultTrip = async (req, res) => {
     });
   } catch (error) {
     console.error("Error adding default trip:", error);
-    res.status(500).json({ message: "Failed to add default trip", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Failed to add default trip", error: error.message });
   }
 };
 
@@ -171,7 +185,28 @@ const deleteDefaultTrip = async (req, res) => {
     res.status(200).json({ message: "Default trip deleted successfully" });
   } catch (error) {
     console.error("Error deleting default trip:", error);
-    res.status(500).json({ message: "Failed to delete default trip", error: error.message });
+    res
+      .status(500)
+      .json({ message: "Failed to delete default trip", error: error.message });
+  }
+};
+
+const getAllTrips = async (req, res) => {
+  try {
+    const trips = await DefaultTrip.find()
+      .populate("route", "startPoint endPoint distance estimatedTime fare")
+      .populate("bus", "busNumber operator capacity");
+
+    if (!trips.length) {
+      return res.status(404).json({ message: "No trips found" });
+    }
+
+    res.status(200).json({ trips });
+  } catch (error) {
+    console.error("Error retrieving trips:", error);
+    res
+      .status(500)
+      .json({ message: "Failed to retrieve trips", error: error.message });
   }
 };
 
@@ -183,4 +218,5 @@ module.exports = {
   getBusById,
   addDefaultTrip,
   deleteDefaultTrip,
+  getAllTrips,
 };

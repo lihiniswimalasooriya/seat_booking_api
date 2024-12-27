@@ -6,7 +6,8 @@ const router = express.Router();
 
 const validateInput = (fields) => {
   const errors = {};
-  if (!fields.name || fields.name.trim() === "") errors.name = "Name is required";
+  if (!fields.name || fields.name.trim() === "")
+    errors.name = "Name is required";
   if (!fields.email || !/\S+@\S+\.\S+/.test(fields.email))
     errors.email = "Valid email is required";
   if (!fields.password || fields.password.length < 6)
@@ -41,7 +42,6 @@ router.post("/register", async (req, res) => {
   }
 });
 
-
 // Login route
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
@@ -71,14 +71,88 @@ router.post("/login", async (req, res) => {
       { expiresIn: "1d" }
     );
 
-    res.status(200).json({ message: "Login successful", token, user: {
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      id: user.id
-    } });
+    res.status(200).json({
+      message: "Login successful",
+      token,
+      user: {
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        id: user.id,
+      },
+    });
   } catch (err) {
     console.error("Login Error:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+});
+
+// Get all users with optional role filter
+router.get("/users", async (req, res) => {
+  const { role } = req.query;
+
+  // Validate role if provided
+  if (role && !["admin", "commuter", "operator"].includes(role)) {
+    return res.status(400).json({ message: "Invalid role filter" });
+  }
+
+  try {
+    // Build query based on role
+    const query = role ? { role } : {};
+    const users = await User.find(query, "name email role"); // Select specific fields to return
+
+    res.status(200).json({
+      message: "Users fetched successfully",
+      users,
+    });
+  } catch (err) {
+    console.error("Error fetching users:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+});
+
+router.put("/users/:id", async (req, res) => {
+  const { id } = req.params;
+  const { name, email } = req.body;
+
+  try {
+    const user = await User.findById({ _id: id });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Update user fields
+    if (name) user.name = name;
+    if (email) user.email = email;
+
+    await user.save();
+
+    res.status(200).json({ message: "User updated successfully", user });
+  } catch (err) {
+    console.error("Error updating user:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+});
+
+// Delete user route
+router.delete("/users/:id", async (req, res) => {
+  const { id } = req.params;
+
+  console.log("id", id);
+
+  try {
+    const user = await User.findById({ _id: id });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    await User.findByIdAndDelete(id);
+
+    res.status(200).json({ message: "User deleted successfully" });
+  } catch (err) {
+    console.error("Error deleting user:", err);
     res.status(500).json({ message: "Server error", error: err.message });
   }
 });
