@@ -5,6 +5,77 @@ const DefaultTrip = require("../models/DefaultTrip");
 const Route = require("../models/Route");
 const { broadcast } = require("../utils/websocket");
 
+/**
+ * @swagger
+ * tags:
+ *   name: Reservations
+ *   description: Reservation management APIs
+ */
+
+
+/**
+ * @swagger
+ * /reservations:
+ *   post:
+ *     summary: Create a new reservation
+ *     tags: [Reservations]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               busId:
+ *                 type: string
+ *                 description: ID of the bus
+ *               defaultTripId:
+ *                 type: string
+ *                 description: ID of the default trip
+ *               date:
+ *                 type: string
+ *                 format: date
+ *                 description: Date of the trip (YYYY-MM-DD)
+ *               seatNumber:
+ *                 type: integer
+ *                 description: Seat number to reserve
+ *             required:
+ *               - busId
+ *               - defaultTripId
+ *               - date
+ *               - seatNumber
+ *     responses:
+ *       201:
+ *         description: Reservation created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 reservation:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     commuter:
+ *                       type: string
+ *                     bus:
+ *                       type: string
+ *                     trip:
+ *                       type: string
+ *                     seatNumber:
+ *                       type: integer
+ *                     paymentStatus:
+ *                       type: string
+ *       400:
+ *         description: Validation errors or missing fields
+ *       500:
+ *         description: Internal server error
+ */
 const createReservation = async (req, res) => {
   const { busId, defaultTripId, date, seatNumber } = req.body;
   const commuter = req.user.id;
@@ -83,6 +154,44 @@ const createReservation = async (req, res) => {
   }
 };
 
+/**
+ * @swagger
+ * /reservations:
+ *   get:
+ *     summary: Get all reservations
+ *     tags: [Reservations]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of reservations
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 reservations:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       commuter:
+ *                         type: string
+ *                       bus:
+ *                         type: string
+ *                       trip:
+ *                         type: string
+ *                       seatNumber:
+ *                         type: integer
+ *                       paymentStatus:
+ *                         type: string
+ *       404:
+ *         description: No reservations found
+ *       500:
+ *         description: Internal server error
+ */
 const getReservations = async (req, res) => {
   try {
     const reservations = await Reservation.find()
@@ -102,6 +211,47 @@ const getReservations = async (req, res) => {
   }
 };
 
+
+/**
+ * @swagger
+ * /reservations/{id}:
+ *   get:
+ *     summary: Get a reservation by ID
+ *     tags: [Reservations]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Reservation ID
+ *     responses:
+ *       200:
+ *         description: Reservation details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: string
+ *                 commuter:
+ *                   type: string
+ *                 bus:
+ *                   type: string
+ *                 trip:
+ *                   type: string
+ *                 seatNumber:
+ *                   type: integer
+ *                 paymentStatus:
+ *                   type: string
+ *       404:
+ *         description: Reservation not found
+ *       500:
+ *         description: Internal server error
+ */
 const getReservationById = async (req, res) => {
   const { id } = req.params;
 
@@ -127,6 +277,63 @@ const getReservationById = async (req, res) => {
   }
 };
 
+/**
+ * @swagger
+ * /reservations/{id}:
+ *   put:
+ *     summary: Update a reservation by ID
+ *     tags: [Reservations]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Reservation ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               seatNumber:
+ *                 type: integer
+ *               paymentStatus:
+ *                 type: string
+ *                 enum: [pending, paid]
+ *     responses:
+ *       200:
+ *         description: Reservation updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 reservation:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     commuter:
+ *                       type: string
+ *                     bus:
+ *                       type: string
+ *                     trip:
+ *                       type: string
+ *                     seatNumber:
+ *                       type: integer
+ *                     paymentStatus:
+ *                       type: string
+ *       404:
+ *         description: Reservation not found
+ *       500:
+ *         description: Internal server error
+ */
 const updateReservation = async (req, res) => {
   const { id } = req.params;
   const { seatNumber, paymentStatus } = req.body;
@@ -185,6 +392,31 @@ const updateReservation = async (req, res) => {
   }
 };
 
+/**
+ * @swagger
+ * /reservations/{id}:
+ *   delete:
+ *     summary: Delete a reservation by ID
+ *     tags: [Reservations]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Reservation ID
+ *     responses:
+ *       200:
+ *         description: Reservation deleted successfully
+ *       403:
+ *         description: Forbidden, user cannot delete this reservation
+ *       404:
+ *         description: Reservation not found
+ *       500:
+ *         description: Internal server error
+ */
 const deleteReservation = async (req, res) => {
   const { id } = req.params;
   const commuterId = req.user.id;
@@ -243,6 +475,67 @@ const deleteReservation = async (req, res) => {
   }
 };
 
+/**
+ * @swagger
+ * /reservations/trip:
+ *   get:
+ *     summary: Get or create a trip based on details
+ *     tags: [Reservations]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: busId
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Bus ID
+ *       - in: query
+ *         name: defaultTripId
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Default trip ID
+ *       - in: query
+ *         name: date
+ *         schema:
+ *           type: string
+ *           format: date
+ *         required: true
+ *         description: Date of the trip (YYYY-MM-DD)
+ *       - in: query
+ *         name: routeId
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Route ID
+ *     responses:
+ *       200:
+ *         description: Trip details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: string
+ *                 busId:
+ *                   type: string
+ *                 defaultTripId:
+ *                   type: string
+ *                 date:
+ *                   type: string
+ *                 routeId:
+ *                   type: string
+ *                 bookedSeats:
+ *                   type: array
+ *                   items:
+ *                     type: integer
+ *       400:
+ *         description: Missing fields
+ *       500:
+ *         description: Internal server error
+ */
 const getOrCreateTripByDetails = async (req, res) => {
   const { busId, defaultTripId, date, routeId } = req.query;
 
