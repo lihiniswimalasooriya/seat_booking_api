@@ -17,7 +17,41 @@ const validateInput = (fields) => {
   return errors;
 };
 
-// Registration route
+/**
+ * @swagger
+ * /auth/register:
+ *   post:
+ *     summary: Register a new user
+ *     security: []
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 description: Name of the user
+ *               email:
+ *                 type: string
+ *                 description: Email address of the user
+ *               password:
+ *                 type: string
+ *                 description: Password for the user (min. 6 characters)
+ *               role:
+ *                 type: string
+ *                 enum: [admin, commuter, operator]
+ *                 description: Role of the user
+ *     responses:
+ *       201:
+ *         description: User registered successfully
+ *       400:
+ *         description: Validation errors or email already exists
+ *       500:
+ *         description: Server error
+ */
 router.post("/register", async (req, res) => {
   const { name, email, password, role } = req.body;
 
@@ -42,7 +76,56 @@ router.post("/register", async (req, res) => {
   }
 });
 
-// Login route
+/**
+ * @swagger
+ * /auth/login:
+ *   post:
+ *     summary: Login a user
+ *     security: []
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 description: Email address of the user
+ *               password:
+ *                 type: string
+ *                 description: Password of the user
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                 token:
+ *                   type: string
+ *                 user:
+ *                   type: object
+ *                   properties:
+ *                     name:
+ *                       type: string
+ *                     email:
+ *                       type: string
+ *                     role:
+ *                       type: string
+ *                     id:
+ *                       type: string
+ *       400:
+ *         description: Invalid email or password
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
+ */
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
@@ -87,19 +170,38 @@ router.post("/login", async (req, res) => {
   }
 });
 
-// Get all users with optional role filter
+/**
+ * @swagger
+ * /auth/users:
+ *   get:
+ *     summary: Retrieve all users with an optional role filter
+ *     tags: [Users]
+ *     parameters:
+ *       - name: role
+ *         in: query
+ *         required: false
+ *         description: Filter users by role
+ *         schema:
+ *           type: string
+ *           enum: [admin, commuter, operator]
+ *     responses:
+ *       200:
+ *         description: Users fetched successfully
+ *       400:
+ *         description: Invalid role filter
+ *       500:
+ *         description: Server error
+ */
 router.get("/users", async (req, res) => {
   const { role } = req.query;
 
-  // Validate role if provided
   if (role && !["admin", "commuter", "operator"].includes(role)) {
     return res.status(400).json({ message: "Invalid role filter" });
   }
 
   try {
-    // Build query based on role
     const query = role ? { role } : {};
-    const users = await User.find(query, "name email role"); // Select specific fields to return
+    const users = await User.find(query, "name email role");
 
     res.status(200).json({
       message: "Users fetched successfully",
@@ -111,6 +213,38 @@ router.get("/users", async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * /auth/users/{id}:
+ *   put:
+ *     summary: Update user details
+ *     tags: [Users]
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         description: User ID to update
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: User updated successfully
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
+ */
 router.put("/users/:id", async (req, res) => {
   const { id } = req.params;
   const { name, email } = req.body;
@@ -122,7 +256,6 @@ router.put("/users/:id", async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Update user fields
     if (name) user.name = name;
     if (email) user.email = email;
 
@@ -135,11 +268,29 @@ router.put("/users/:id", async (req, res) => {
   }
 });
 
-// Delete user route
+/**
+ * @swagger
+ * /auth/users/{id}:
+ *   delete:
+ *     summary: Delete a user
+ *     tags: [Users]
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         description: User ID to delete
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: User deleted successfully
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
+ */
 router.delete("/users/:id", async (req, res) => {
   const { id } = req.params;
-
-  console.log("id", id);
 
   try {
     const user = await User.findById({ _id: id });

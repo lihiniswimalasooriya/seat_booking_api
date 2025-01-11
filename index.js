@@ -8,6 +8,7 @@ const authRoutes = require("./routes/auth");
 const routeRoutes = require("./routes/routes");
 const busRoutes = require("./routes/buses");
 const reservationRoutes = require("./routes/reservations");
+const setupSwagger = require("./swagger");
 
 dotenv.config();
 const app = express();
@@ -15,6 +16,8 @@ const app = express();
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
+
+setupSwagger(app);
 
 app.get("/", (req, res) => {
   res.send("Welcome to the Bus Reservation System API!");

@@ -2,6 +2,39 @@ const Bus = require("../models/Bus");
 const Route = require("../models/Route");
 const DefaultTrip = require("../models/DefaultTrip");
 
+/**
+ * @swagger
+ * /buses:
+ *   post:
+ *     summary: Add a new bus
+ *     tags: [Buses]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               busNumber:
+ *                 type: string
+ *                 description: Unique bus number
+ *               operator:
+ *                 type: string
+ *                 description: Operator ID
+ *               route:
+ *                 type: string
+ *                 description: Route ID
+ *               capacity:
+ *                 type: integer
+ *                 description: Bus capacity
+ *     responses:
+ *       201:
+ *         description: Bus added successfully
+ *       400:
+ *         description: Validation error or bus already exists
+ *       500:
+ *         description: Server error
+ */
 const addBus = async (req, res) => {
   const { busNumber, operator, route, capacity } = req.body;
 
@@ -35,6 +68,44 @@ const addBus = async (req, res) => {
   }
 };
 
+/**
+ * @swagger
+ * /buses/{id}:
+ *   put:
+ *     summary: Update a bus
+ *     tags: [Buses]
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         description: Bus ID to update
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               busNumber:
+ *                 type: string
+ *               operator:
+ *                 type: string
+ *               route:
+ *                 type: string
+ *               capacity:
+ *                 type: integer
+ *     responses:
+ *       200:
+ *         description: Bus updated successfully
+ *       400:
+ *         description: Bus ID is required
+ *       404:
+ *         description: Bus not found
+ *       500:
+ *         description: Server error
+ */
 const updateBus = async (req, res) => {
   const { id } = req.params;
   const { busNumber, operator, route, capacity } = req.body;
@@ -65,6 +136,29 @@ const updateBus = async (req, res) => {
   }
 };
 
+/**
+ * @swagger
+ * /buses/{id}:
+ *   delete:
+ *     summary: Delete a bus
+ *     tags: [Buses]
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         description: Bus ID to delete
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Bus deleted successfully
+ *       400:
+ *         description: Bus ID is required
+ *       404:
+ *         description: Bus not found
+ *       500:
+ *         description: Server error
+ */
 const deleteBus = async (req, res) => {
   const { id } = req.params;
 
@@ -88,6 +182,20 @@ const deleteBus = async (req, res) => {
   }
 };
 
+/**
+ * @swagger
+ * /buses:
+ *   get:
+ *     summary: Retrieve all buses
+ *     tags: [Buses]
+ *     responses:
+ *       200:
+ *         description: List of buses retrieved successfully
+ *       404:
+ *         description: No buses found
+ *       500:
+ *         description: Server error
+ */
 const getBuses = async (req, res) => {
   try {
     const buses = await Bus.find().populate("operator route");
@@ -105,6 +213,27 @@ const getBuses = async (req, res) => {
   }
 };
 
+/**
+ * @swagger
+ * /buses/{id}:
+ *   get:
+ *     summary: Retrieve a bus by ID
+ *     tags: [Buses]
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         description: Bus ID to retrieve
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Bus retrieved successfully
+ *       404:
+ *         description: Bus not found
+ *       500:
+ *         description: Server error
+ */
 const getBusById = async (req, res) => {
   const { id } = req.params;
 
@@ -128,6 +257,72 @@ const getBusById = async (req, res) => {
   }
 };
 
+/**
+ * @swagger
+ * /buses/defaultTrips:
+ *   get:
+ *     summary: Retrieve all default trips
+ *     tags: [Trips]
+ *     responses:
+ *       200:
+ *         description: List of default trips retrieved successfully
+ *       404:
+ *         description: No trips found
+ *       500:
+ *         description: Server error
+ */
+const getAllTrips = async (req, res) => {
+  try {
+    const trips = await DefaultTrip.find()
+      .populate("route", "startPoint endPoint distance estimatedTime fare")
+      .populate("bus", "busNumber operator capacity");
+
+    if (!trips.length) {
+      return res.status(404).json({ message: "No trips found" });
+    }
+
+    res.status(200).json({ trips });
+  } catch (error) {
+    console.error("Error retrieving trips:", error);
+    res
+      .status(500)
+      .json({ message: "Failed to retrieve trips", error: error.message });
+  }
+};
+
+/**
+ * @swagger
+ * /buses/defaultTrips:
+ *   post:
+ *     summary: Add a new default trip
+ *     tags: [Trips]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               route:
+ *                 type: string
+ *                 description: Route ID
+ *               bus:
+ *                 type: string
+ *                 description: Bus ID
+ *               startTime:
+ *                 type: string
+ *                 description: Start time
+ *               arrivalTime:
+ *                 type: string
+ *                 description: Arrival time
+ *     responses:
+ *       201:
+ *         description: Default trip added successfully
+ *       400:
+ *         description: Validation error
+ *       500:
+ *         description: Server error
+ */
 const addDefaultTrip = async (req, res) => {
   const { route, bus, startTime, arrivalTime } = req.body;
 
@@ -168,6 +363,29 @@ const addDefaultTrip = async (req, res) => {
   }
 };
 
+/**
+ * @swagger
+ * /buses/defaultTrips/{id}:
+ *   delete:
+ *     summary: Delete a default trip
+ *     tags: [Trips]
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         description: Default trip ID to delete
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Default trip deleted successfully
+ *       400:
+ *         description: Default trip ID is required
+ *       404:
+ *         description: Default trip not found
+ *       500:
+ *         description: Server error
+ */
 const deleteDefaultTrip = async (req, res) => {
   const { id } = req.params;
 
@@ -188,25 +406,6 @@ const deleteDefaultTrip = async (req, res) => {
     res
       .status(500)
       .json({ message: "Failed to delete default trip", error: error.message });
-  }
-};
-
-const getAllTrips = async (req, res) => {
-  try {
-    const trips = await DefaultTrip.find()
-      .populate("route", "startPoint endPoint distance estimatedTime fare")
-      .populate("bus", "busNumber operator capacity");
-
-    if (!trips.length) {
-      return res.status(404).json({ message: "No trips found" });
-    }
-
-    res.status(200).json({ trips });
-  } catch (error) {
-    console.error("Error retrieving trips:", error);
-    res
-      .status(500)
-      .json({ message: "Failed to retrieve trips", error: error.message });
   }
 };
 
