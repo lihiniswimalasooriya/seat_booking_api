@@ -39,8 +39,15 @@ const setupSwagger = (app) => {
   app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
     swaggerOptions: {
         url: "/swagger.json",
+        dom_id: "#swagger-ui",
       },
   }));
+
+  app.get('/swagger.json', (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.send(swaggerSpec);
+  });
 };
 
+  
 module.exports = setupSwagger;
