@@ -11,7 +11,8 @@ const swaggerOptions = {
     },
     servers: [
       {
-        url: "https://lw-seat-booking-api.vercel.app/" ,
+        // url: "https://lw-seat-booking-api.vercel.app/" ,
+        url: "http://localhost:5000/" ,
       },
     ],
     components: {
