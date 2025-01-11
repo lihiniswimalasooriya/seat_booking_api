@@ -1,6 +1,8 @@
 const swaggerJsdoc = require("swagger-jsdoc");
 const swaggerUi = require("swagger-ui-express");
 
+const CSS_URL = "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.1.0/swagger-ui.min.css";
+
 const swaggerOptions = {
   definition: {
     openapi: "3.0.0",
@@ -37,10 +39,11 @@ const swaggerSpec = swaggerJsdoc(swaggerOptions);
 
 const setupSwagger = (app) => {
   app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
-    swaggerOptions: {
-        url: "/swagger.json",
-        dom_id: "#swagger-ui",
-      },
+    customCssUrl: CSS_URL 
+    // swaggerOptions: {
+    //     url: "/swagger.json",
+    //     dom_id: "#swagger-ui",
+    //   },
   }));
 
   app.get('/swagger.json', (req, res) => {
