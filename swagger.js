@@ -11,8 +11,8 @@ const swaggerOptions = {
     },
     servers: [
       {
-        // url: "https://lw-seat-booking-api.vercel.app/" ,
-        url: "http://localhost:5000/" ,
+        url: "https://lw-seat-booking-api.vercel.app/" ,
+        // url: "http://localhost:5000/" ,
       },
     ],
     components: {
@@ -36,7 +36,11 @@ const swaggerOptions = {
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
 
 const setupSwagger = (app) => {
-  app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+  app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+    swaggerOptions: {
+        url: "/swagger.json",
+      },
+  }));
 };
 
 module.exports = setupSwagger;
