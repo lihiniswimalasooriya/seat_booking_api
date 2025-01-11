@@ -17,7 +17,7 @@
     },
     {
       "src": "/api-docs/(.*)",
-      "dest": "/api-docs/$1"
+      "dest": "/"
     }
   ]
 }
