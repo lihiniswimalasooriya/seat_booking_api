@@ -1,41 +1,47 @@
-const swaggerJsdoc = require("swagger-jsdoc");
-const swaggerUi = require("swagger-ui-express");
+// const swaggerJsdoc = require("swagger-jsdoc");
+// const swaggerUi = require("swagger-ui-express");
 
-const swaggerOptions = {
-  definition: {
-    openapi: "3.0.0",
-    info: {
-      title: "Seat Booking API",
-      version: "1.0.0",
-      description: "API documentation for the Seat Booking application",
-    },
-    servers: [
-      {
-        url: process.env.API_URL,
-      },
-    ],
-    components: {
-      securitySchemes: {
-        bearerAuth: {
-          type: "http",
-          scheme: "bearer",
-          bearerFormat: "JWT",
-        },
-      },
-    },
-    security: [
-      {
-        bearerAuth: [],
-      },
-    ],
-  },
-  apis: ["./routes/auth.js", "./controllers/*.js"],
-};
+// const CSS_URL = "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.1.0/swagger-ui.min.css";
 
-const swaggerSpec = swaggerJsdoc(swaggerOptions);
+// const swaggerOptions = {
+//   definition: {
+//     openapi: "3.0.0",
+//     info: {
+//       title: "Seat Booking API",
+//       version: "1.0.0",
+//       description: "API documentation for the Seat Booking application",
+//     },
+//     servers: [
+//       {
+//         // url: "https://lw-seat-booking-api.vercel.app/" ,
+//         url: "http://localhost:5000/" ,
+//       },
+//     ],
+//     components: {
+//       securitySchemes: {
+//         bearerAuth: {
+//           type: "http",
+//           scheme: "bearer",
+//           bearerFormat: "JWT",
+//         },
+//       },
+//     },
+//     security: [
+//       {
+//         bearerAuth: [],
+//       },
+//     ],
+//   },
+//   apis: ["./routes/auth.js", "./controllers/*.js"],
+// };
 
-const setupSwagger = (app) => {
-  app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-};
+// const swaggerSpec = swaggerJsdoc(swaggerOptions);
 
-module.exports = setupSwagger;
+// const setupSwagger = (app) => {
+//   app.use("/api-docs",
+//     swaggerUi.serve,
+//     swaggerUi.setup(swaggerSpec, {customCssUrl: CSS_URL }));
+// };
+
+  
+// module.exports = setupSwagger;
