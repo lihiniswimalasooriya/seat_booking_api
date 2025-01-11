@@ -12,10 +12,6 @@
       "dest": "/"
     },
     {
-      "src": "/swagger.json",
-      "dest": "/swagger.json"
-    },
-    {
       "src": "/api-docs/(.*)",
       "dest": "/"
     }
