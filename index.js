@@ -8,7 +8,6 @@ const authRoutes = require("./routes/auth");
 const routeRoutes = require("./routes/routes");
 const busRoutes = require("./routes/buses");
 const reservationRoutes = require("./routes/reservations");
-// const setupSwagger = require("./swagger");
 const swaggerUI = require("swagger-ui-express");
 const swaggerJsDoc = require("swagger-jsdoc");
 
@@ -20,7 +19,7 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
-const CSS_URL = "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.1.0/swagger-ui.min.css";
+// const CSS_URL = "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.1.0/swagger-ui.min.css";
 
   const options = {
     definition: {
@@ -55,11 +54,31 @@ const CSS_URL = "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.1.0/swagger
   };
 
 const specs = swaggerJsDoc(options);
+const path = require('path');
+
+// Serve static files for Swagger UI if needed
+app.use('/swagger-ui', express.static(path.join(__dirname, 'node_modules/swagger-ui-dist')));
+
+// app.use(
+//   "/api-docs",
+//   swaggerUI.serve,
+//   swaggerUI.setup(specs, { customCssUrl: CSS_URL })
+// );
+
+const CSS_URL = "/swagger-ui/swagger-ui.css"; // Serve custom CSS from static folder
+
 app.use(
   "/api-docs",
   swaggerUI.serve,
-  swaggerUI.setup(specs, { customCssUrl: CSS_URL })
+  swaggerUI.setup(specs, {
+    customCssUrl: CSS_URL,
+    customJs: [
+      "/swagger-ui/swagger-ui-bundle.js",
+      "/swagger-ui/swagger-ui-standalone-preset.js"
+    ]
+  })
 );
+
 
 // setupSwagger(app);
 
